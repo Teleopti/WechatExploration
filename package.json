@@ -1,0 +1,25 @@
+{
+  "name": "wechat_demo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "express",
+    "wechat"
+  ],
+  "author": "dumpling",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.15.0",
+    "express": "^4.13.4",
+    "merge": "^1.2.0",
+    "morgan": "^1.7.0",
+    "request": "^2.69.0",
+    "wechat": "^2.0.3",
+    "xml2js": "^0.4.16"
+  }
+}
