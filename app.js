@@ -5,6 +5,7 @@ const morgan = require("morgan");
 const bodyParser = require("body-parser");
 const wechat = require('wechat');
 const buildTracker = require("./retrive_build")
+const buildAuthorTracker = require('./retrieve-build-author')
 
 const register = require("./register");
 const scheduleTracker = require("./request-schedule")
@@ -37,16 +38,16 @@ app.post("/", wechat(config, (req, res, next) => {
         return;
     }
 
-     if (req.weixin.EventKey === 'schedule') {
+    if (req.weixin.EventKey === 'schedule') {
         scheduleTracker(register(req.weixin.FromUserName).id).then(function(layers) {
             console.log('layers', layers)
             if (layers.length == 0) {
                 res.reply("You don't have any schedule today.")
             } else {
                 var message = "Your schedule for today:" + '\n----------------\n'
-                message = message + layers.map( layer => layer.TitleTime + '  ' + layer.TitleHeader).join('\n')
+                message = message + layers.map(layer => layer.TitleTime + '  ' + layer.TitleHeader).join('\n')
                 res.reply(message)
-            }       
+            }
         })
     }
 
@@ -61,29 +62,42 @@ app.post("/", wechat(config, (req, res, next) => {
             var buildResponse = '';
             var holder = {}
             failures.forEach(function(failure) {
-                if (!holder[failure.$.buildTypeId]) 
-                holder[failure.$.buildTypeId] = failure.$.buildTypeId.split("_", 2);               
+                if (!holder[failure.$.buildTypeId])
+                    holder[failure.$.buildTypeId] = {
+                        "type": failure.$.buildTypeId.split("_", 2),
+                        "self": failure
+                    }
             })
+
+            var failures = Object.keys(holder).map(key => holder[key].self);
             
+           
             var groups = {}
-            
-            Object.keys(holder).forEach((key) => {
-                var value = holder[key];
-                if (groups[value[0]]) {
-                    groups[value[0]].push(value[1])
-                } else {
-                    groups[value[0]] = [value[1]]
-                }                
+
+            Promise.all(failures.map(failure => buildAuthorTracker(failure))).then((authors) => {
+                Object.keys(holder).forEach((key, idx) => {
+                    var value = holder[key].type;
+                    if (groups[value[0]]) {
+                        groups[value[0]].push(value[1] + '\n (m) ' + authors[idx] )
+                    } else {
+                        groups[value[0]] = [value[1] + '\n (m) ' + authors[idx]  ]
+                    }
+                })
+
+                buildResponse = Object.keys(groups).map((group) => {
+                    return '(G) ' + group + '\n-----------\n' + groups[group].map((_v, _i) => {
+                        return _i + 1 + '. ' + _v ;
+                    }).join('\n') + '\n';
+                }).join('\n');
+
+
+                res.reply('Failed Projects: \n' + buildResponse);
+
             })
-            
-            buildResponse = Object.keys(groups).map((group) => {
-                return '(G) ' + group + '\n-----------\n' +groups[group].map((_v, _i) => {
-                    return _i + 1 + '. ' + _v;
-                }).join('\n') + '\n';                          
-            }).join('\n');
-            
-            
-            res.reply('Failed Projects: \n' + buildResponse);
+
+
+
+
         })
 
     }
