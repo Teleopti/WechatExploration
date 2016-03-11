@@ -1,4 +1,4 @@
-# WechatExploration
+# Wechat Exploration
 
 Exploring integrating WeChat into our WFM product.
 
